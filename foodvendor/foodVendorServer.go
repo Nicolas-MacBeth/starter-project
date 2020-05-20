@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -15,7 +16,7 @@ func main() {
 	portString := "8082"
 
 	fmt.Println(logPrefix + "Starting FoodVendor server to listen for requests on port " + portString)
-	http.ListenAndServe(":"+portString, nil)
+	log.Fatal(http.ListenAndServe(":"+portString, nil))
 }
 
 func findVendor(response http.ResponseWriter, req *http.Request) {
