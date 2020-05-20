@@ -1,15 +1,13 @@
-package foodvendor
+package main
 
 import (
 	"fmt"
 	"net/http"
-	"sync"
 )
 
 var logPrefix string = "[FoodVendor] "
 
-// StartFoodVendor initiates the server for this service
-func StartFoodVendor(waitGroup *sync.WaitGroup) {
+func main() {
 
 	// Handle routes with their respective functions
 	http.HandleFunc("/findvendor", findVendor)
@@ -18,9 +16,6 @@ func StartFoodVendor(waitGroup *sync.WaitGroup) {
 
 	fmt.Println(logPrefix + "Starting FoodVendor server to listen for requests on port " + portString)
 	http.ListenAndServe(":"+portString, nil)
-
-	// This line usually won't run, it's simply to keep main alive while the server runs in a goroutine
-	waitGroup.Done()
 }
 
 func findVendor(response http.ResponseWriter, req *http.Request) {
