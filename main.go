@@ -30,15 +30,20 @@ func startChildProcess(directory string, waitGroup *sync.WaitGroup) {
 	build := exec.Command("go", "build", "server.go")
 	build.Dir = directory
 	attachChildOutputToParent(build)
-	build.Run()
+	errBuild := build.Run()
+	if errBuild != nil {
+		log.Printf("%v %v", directory, errBuild)
+	}
 
 	// Run the executable
 	childProcess := exec.Command("./server")
 	childProcess.Dir = directory
 	attachChildOutputToParent(childProcess)
 
-	err := childProcess.Run() // This line will block execution and deferred Done() will not run until the server crashes, keeping parent main alive
-	log.Fatal(err)
+	errProcess := childProcess.Run() // This line will block execution and deferred Done() will not run until the server crashes, keeping parent main alive
+	if errProcess != nil {
+		log.Printf("%v %v", directory, errProcess)
+	}
 }
 
 // Swap the child processes' Stdout and Stderr to something more useful (parent processe's Stdout for now)

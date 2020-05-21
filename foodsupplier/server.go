@@ -15,7 +15,7 @@ func main() {
 	http.HandleFunc("/findsupplier", findSupplier)
 
 	log.Printf("%v Starting FoodSupplier server to listen for requests on port %v", logPrefix, portString)
-	log.Fatal(http.ListenAndServe(":"+portString, nil))
+	log.Printf("%v %v", logPrefix, http.ListenAndServe(":"+portString, nil))
 }
 
 func findSupplier(response http.ResponseWriter, request *http.Request) {

@@ -16,7 +16,7 @@ func main() {
 	http.HandleFunc("/findfood", findFood)
 
 	log.Printf("%v Starting FoodFinder server to listen for requests on port %v", logPrefix, portString)
-	log.Fatal(http.ListenAndServe(":"+portString, nil))
+	log.Printf("%v %v", logPrefix, http.ListenAndServe(":"+portString, nil))
 }
 
 func findFood(response http.ResponseWriter, request *http.Request) {
