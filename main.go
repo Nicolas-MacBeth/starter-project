@@ -33,6 +33,7 @@ func startChildProcess(directory string, waitGroup *sync.WaitGroup) {
 	errBuild := build.Run()
 	if errBuild != nil {
 		log.Printf("%v %v", directory, errBuild)
+		return // Exit from this specific goroutine, since build failed,
 	}
 
 	// Run the executable
