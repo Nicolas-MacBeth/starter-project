@@ -1,4 +1,10 @@
 # Default Go .gitignore
+
+# Ignore binaries, with no file extension
+*
+!/**/
+!*.*
+
 # Binaries for programs and plugins
 *.exe
 *.exe~

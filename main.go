@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -9,25 +8,35 @@ import (
 )
 
 func main() {
-	fmt.Println("Welcome to the suite of ingredient finding services")
+	log.Println("Welcome to the suite of ingredient finding services")
 
 	// waitGroup for parent main to stay alive while subprocesses are still alive
 	waitGroup := new(sync.WaitGroup)
 	waitGroup.Add(3)
 
 	// Each child is a *process* but is still spawned from different goroutines, for better performance and waitGroup management
-	go startChildProcess("./foodfinder/foodFinderServer.go", waitGroup)
-	go startChildProcess("./foodsupplier/foodSupplierServer.go", waitGroup)
-	go startChildProcess("./foodvendor/foodVendorServer.go", waitGroup)
+	go startChildProcess("foodfinder", waitGroup)
+	go startChildProcess("foodsupplier", waitGroup)
+	go startChildProcess("foodvendor", waitGroup)
 
 	waitGroup.Wait()
 }
 
 // Start every child process individually
-func startChildProcess(path string, waitGroup *sync.WaitGroup) {
+func startChildProcess(directory string, waitGroup *sync.WaitGroup) {
 	defer waitGroup.Done()
 
-	childProcess := exec.Command("go", "run", path)
+	// Build the executable
+	build := exec.Command("go", "build", "server.go")
+	build.Dir = directory
+	buildErr := build.Run()
+	if buildErr != nil {
+		log.Fatal(buildErr)
+	}
+
+	// Run the executable
+	childProcess := exec.Command("./server")
+	childProcess.Dir = directory
 	attachChildOutputToParent(childProcess)
 
 	err := childProcess.Run() // This line will block execution and deferred Done() will not run until the server crashes, keeping parent main alive
