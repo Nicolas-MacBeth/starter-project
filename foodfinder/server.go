@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-var logPrefix string = "[FoodFinder]"
+var logPrefix string = "[Finder]"
 
 const portString string = "8080"
 

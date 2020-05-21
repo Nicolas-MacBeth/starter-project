@@ -29,10 +29,8 @@ func startChildProcess(directory string, waitGroup *sync.WaitGroup) {
 	// Build the executable
 	build := exec.Command("go", "build", "server.go")
 	build.Dir = directory
-	buildErr := build.Run()
-	if buildErr != nil {
-		log.Fatal(buildErr)
-	}
+	attachChildOutputToParent(build)
+	build.Run()
 
 	// Run the executable
 	childProcess := exec.Command("./server")
