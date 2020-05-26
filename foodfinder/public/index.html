@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Food Finder</title>
+        <meta name="description" content="Food finder service for start project">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head>
+    <body>
+        <h2>Welcome to Food Finder!</h2>
+        <p>Please enter the ingredients you are looking for below, delimited by commas (eg: avocado, chili, pepper)</p>
+        <form>
+            <label for="ingredients">Ingredients:</label><br>
+            <input type="text" id="ingredients" name="ingredients" onkeydown = "enterKey(event)"><br><br>
+            <input type="button" value="Submit" id="submit" onclick="apiCall()">
+        </form> 
+        <h3>Results, sorted by ingredient and by price:</h3>
+        <div id="results">
+            <!--Placeholder-->
+        </div>
+        <script src="./public/index.js"></script>
+    </body>
+</html>

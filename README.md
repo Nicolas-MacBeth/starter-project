@@ -6,6 +6,6 @@ Starter project in Go to increase familiarity with GCP and OpenTelemetry. It is 
 
 1. Clone repo
 2. Install [Go](https://golang.org/dl/)
-3. Run `cd starter-project && go run main.go`
+3. Run `cd starter-project` and `go build main.go && ./main`
 
 Created by Nicolas MacBeth
