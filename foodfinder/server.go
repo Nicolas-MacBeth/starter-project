@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -35,6 +36,8 @@ type finalAnswers struct {
 }
 
 const portString string = "8080"
+const supplierPort string = "8081"
+const vendorPort string = "8082"
 
 func main() {
 
@@ -109,7 +112,7 @@ func findVendors(ingredients queryParams) (*vendorAndIngredientList, error) {
 	}
 
 	// Make request to food supplier service
-	response, err := http.Post("http://localhost:8081/foodsupplier", "application/json", bytes.NewBuffer(body))
+	response, err := http.Post(fmt.Sprintf("http://localhost:%v/foodsupplier", supplierPort), "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +136,7 @@ func queryVendorsPriceAndInventory(payload *vendorAndIngredientList) (*finalAnsw
 	}
 
 	// Make request to food vendor service
-	response, err := http.Post("http://localhost:8082/foodvendor", "application/json", bytes.NewBuffer(body))
+	response, err := http.Post(fmt.Sprintf("http://localhost:%v/foodvendor", vendorPort), "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
