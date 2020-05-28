@@ -40,16 +40,19 @@ const supplierPort string = "8081"
 const vendorPort string = "8082"
 
 func main() {
+	router := http.NewServeMux()
 
 	// Handle routes with their respective functions
-	http.HandleFunc("/", homepage)
-	http.HandleFunc("/findfood", findFood)
+	homepageHandler := http.HandlerFunc(homepage)
+	router.Handle("/", homepageHandler)
+	findfoodHandler := http.HandlerFunc(findFood)
+	router.Handle("/findfood", findfoodHandler)
 
 	fs := http.FileServer(http.Dir("./public"))
-	http.Handle("/public/", http.StripPrefix("/public/", fs))
+	router.Handle("/public/", http.StripPrefix("/public/", fs))
 
 	log.Printf("%v Starting FoodFinder server to listen for requests on port %v", logPrefix, portString)
-	log.Printf("%v %v", logPrefix, http.ListenAndServe(":"+portString, nil))
+	log.Printf("%v %v", logPrefix, http.ListenAndServe(":"+portString, router))
 }
 
 func findFood(response http.ResponseWriter, request *http.Request) {
