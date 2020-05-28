@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"contrib.go.opencensus.io/exporter/prometheus"
+	"go.opencensus.io/plugin/ochttp"
+	"go.opencensus.io/stats/view"
 )
 
 var logPrefix string = "[Finder]"
@@ -38,21 +42,48 @@ type finalAnswers struct {
 const portString string = "8080"
 const supplierPort string = "8081"
 const vendorPort string = "8082"
+const prometheusPort string = "8888"
 
 func main() {
+	// Create the Prometheus exporter.
+	exporter, err := prometheus.NewExporter(prometheus.Options{
+		Namespace: "ocmetrics",
+	})
+	if err != nil {
+		log.Printf("Failed to create the Prometheus stats exporter: %v", err)
+	}
+
+	// Run the Prometheus exporter as a scrape endpoint.
+	go func() {
+		mux := http.NewServeMux()
+		mux.Handle("/metrics", exporter)
+		log.Printf("%v Starting Prometheus scrape endpoint on port: %v", logPrefix, prometheusPort)
+		log.Println(http.ListenAndServe(":"+prometheusPort, mux))
+	}()
+	// foodfinder Server
 	router := http.NewServeMux()
 
-	// Handle routes with their respective functions
+	// Handler for routes with their respective functions, wrapped in Metrics handler
 	homepageHandler := http.HandlerFunc(homepage)
 	router.Handle("/", homepageHandler)
+
 	findfoodHandler := http.HandlerFunc(findFood)
 	router.Handle("/findfood", findfoodHandler)
 
 	fs := http.FileServer(http.Dir("./public"))
 	router.Handle("/public/", http.StripPrefix("/public/", fs))
 
+	// Wrap the router in a ochttp Handler for metrics
+	mux := &ochttp.Handler{
+		Handler: router,
+	}
+
+	if err := view.Register(ochttp.DefaultServerViews...); err != nil {
+		log.Fatalf("Failed to register server views for HTTP metrics: %v", err)
+	}
+
 	log.Printf("%v Starting FoodFinder server to listen for requests on port %v", logPrefix, portString)
-	log.Printf("%v %v", logPrefix, http.ListenAndServe(":"+portString, router))
+	log.Printf("%v %v", logPrefix, http.ListenAndServe(":"+portString, mux))
 }
 
 func findFood(response http.ResponseWriter, request *http.Request) {
