@@ -2,10 +2,14 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+
+	"go.opencensus.io/stats"
+	"go.opencensus.io/tag"
 
 	"contrib.go.opencensus.io/exporter/prometheus"
 	"go.opencensus.io/plugin/ochttp"
@@ -39,10 +43,16 @@ type finalAnswers struct {
 	ListOfResults []inventoryAndPrice
 }
 
+// metrics variables needed
+var (
+	requests      = stats.Int64("starter-project_requests", "The total requests per ingredient", "reqs")
+	ingredient, _ = tag.NewKey("ingredient")
+)
+
 const portString string = "8080"
 const supplierPort string = "8081"
 const vendorPort string = "8082"
-const prometheusPort string = "8888"
+const prometheusPort string = "8083"
 
 func main() {
 	// Create the Prometheus exporter.
@@ -50,7 +60,7 @@ func main() {
 		Namespace: "ocmetrics",
 	})
 	if err != nil {
-		log.Printf("Failed to create the Prometheus stats exporter: %v", err)
+		log.Printf("%v Failed to create the Prometheus metrics exporter: %v", logPrefix, err)
 	}
 
 	// Run the Prometheus exporter as a scrape endpoint.
@@ -78,8 +88,15 @@ func main() {
 		Handler: router,
 	}
 
-	if err := view.Register(ochttp.DefaultServerViews...); err != nil {
-		log.Fatalf("Failed to register server views for HTTP metrics: %v", err)
+	v := &view.View{
+		Name:        "ingredient_specific_requests",
+		Measure:     requests,
+		Description: "Requests per ingredient",
+		Aggregation: view.Count(),
+		TagKeys:     []tag.Key{ingredient},
+	}
+	if err := view.Register(v); err != nil {
+		log.Fatalf("%v Failed to register the view: %v", logPrefix, err)
 	}
 
 	log.Printf("%v Starting FoodFinder server to listen for requests on port %v", logPrefix, portString)
@@ -97,6 +114,14 @@ func findFood(response http.ResponseWriter, request *http.Request) {
 		log.Printf("%v %v", logPrefix, err)
 		http.Error(response, "Unable to decode JSON", http.StatusBadRequest)
 		return
+	}
+
+	// record metrics for every ingredient
+	for _, ingredient := range ingredients.IngredientsList {
+		err := recordIngredient(ingredient)
+		if err != nil {
+			log.Printf("%v %v", logPrefix, err)
+		}
 	}
 
 	// Get list of vendors
@@ -185,4 +210,14 @@ func queryVendorsPriceAndInventory(payload *vendorAndIngredientList) (*finalAnsw
 	}
 
 	return &finalResult, nil
+}
+
+func recordIngredient(ingredientString string) error {
+	ctx, err := tag.New(context.Background(), tag.Insert(ingredient, ingredientString))
+	if err != nil {
+		return err
+	}
+	stats.Record(ctx, requests.M(1))
+
+	return nil
 }
