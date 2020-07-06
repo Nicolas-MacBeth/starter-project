@@ -8,6 +8,7 @@ It is made on purpose and according to requirements to have the Supplier service
 
 1. Clone repo
 2. Install [Go](https://golang.org/dl/)
-3. Run `cd starter-project` and `go build main.go && ./main`
+3. Populate a MySQL DB and Table
+4. Run `cd starter-project` and `go build main.go && ./main`
 
 Created by Nicolas MacBeth, as a starter project for my internship @ Google
