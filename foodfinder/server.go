@@ -224,7 +224,7 @@ func queryVendorsPriceAndInventory(payload *vendorAndIngredientList) (*finalAnsw
 }
 
 func recordIngredient(ingredientString string) error {
-	ctx, err := tag.New(context.Background(), tag.Insert(ingredient, ingredientString))
+	ctx, err := tag.New(context.Background(), tag.Upsert(ingredient, ingredientString))
 	if err != nil {
 		return err
 	}
