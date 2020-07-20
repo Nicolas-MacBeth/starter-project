@@ -53,6 +53,7 @@ const portString string = "8080"
 const supplierPort string = "8081"
 const vendorPort string = "8082"
 const prometheusPort string = "8083"
+const counterPort = "8084"
 
 func main() {
 	// Create the Prometheus exporter.
@@ -104,6 +105,8 @@ func main() {
 }
 
 func findFood(response http.ResponseWriter, request *http.Request) {
+	go notifyJavaServer()
+
 	log.Printf("%v %v %v", logPrefix, request.Method, request.URL)
 
 	var ingredients queryParams
@@ -157,6 +160,14 @@ func findFood(response http.ResponseWriter, request *http.Request) {
 
 	response.Header().Set("Content-Type", "application/json")
 	response.Write(dataBody)
+}
+
+func notifyJavaServer() {
+	response, err := http.Get(fmt.Sprintf("http://localhost:%v/count", counterPort))
+	if err != nil {
+		fmt.Printf("Java notifying error, err: %v", err)
+	}
+	defer response.Body.Close()
 }
 
 func homepage(response http.ResponseWriter, request *http.Request) {

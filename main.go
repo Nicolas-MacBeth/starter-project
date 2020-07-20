@@ -12,14 +12,29 @@ func main() {
 
 	// waitGroup for parent main to stay alive while subprocesses are still alive
 	waitGroup := new(sync.WaitGroup)
-	waitGroup.Add(3)
+	waitGroup.Add(4)
 
 	// Each child is a *process* but is still spawned from different goroutines, for better performance and waitGroup management
 	go startChildProcess("foodfinder", waitGroup)
 	go startChildProcess("foodsupplier", waitGroup)
 	go startChildProcess("foodvendor", waitGroup)
+	go startChildProcessJava("foodcounter", waitGroup)
 
 	waitGroup.Wait()
+}
+
+func startChildProcessJava(directory string, waitGroup *sync.WaitGroup) {
+	defer waitGroup.Done()
+
+	// Run the executable
+	childProcess := exec.Command("java", "server.java")
+	childProcess.Dir = directory
+	attachChildOutputToParent(childProcess)
+
+	errProcess := childProcess.Run() // This line will block execution and deferred Done() will not run until the server crashes, keeping parent main alive
+	if errProcess != nil {
+		log.Printf("%v %v", directory, errProcess)
+	}
 }
 
 // Start every child process individually
