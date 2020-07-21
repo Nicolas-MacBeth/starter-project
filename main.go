@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -18,17 +19,25 @@ func main() {
 	go startChildProcess("foodfinder", waitGroup)
 	go startChildProcess("foodsupplier", waitGroup)
 	go startChildProcess("foodvendor", waitGroup)
-	go startChildProcessJava("foodcounter", waitGroup)
+	go startChildProcessJava("foodcounter", "ServerCounter", waitGroup)
 
 	waitGroup.Wait()
 }
 
-func startChildProcessJava(directory string, waitGroup *sync.WaitGroup) {
+func startChildProcessJava(directory string, file string, waitGroup *sync.WaitGroup) {
 	defer waitGroup.Done()
 
-	// Run the executable
-	childProcess := exec.Command("java", "server.java")
-	childProcess.Dir = directory
+	// Compile the class
+	build := exec.Command("javac", fmt.Sprintf("%v/%v.java", directory, file))
+	attachChildOutputToParent(build)
+	errBuild := build.Run()
+	if errBuild != nil {
+		log.Printf("%v %v", directory, errBuild)
+		return // Exit from this specific goroutine, since build failed,
+	}
+
+	// Run the server
+	childProcess := exec.Command("java", fmt.Sprintf("%v.%v", directory, file))
 	attachChildOutputToParent(childProcess)
 
 	errProcess := childProcess.Run() // This line will block execution and deferred Done() will not run until the server crashes, keeping parent main alive

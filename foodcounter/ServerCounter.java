@@ -8,7 +8,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
-public class Test {
+public class ServerCounter {
 
     private static int count = 0;
     private static int port = 8084;
