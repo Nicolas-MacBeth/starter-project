@@ -10,7 +10,7 @@ import (
 
 const jmxPort int = 8686
 
-var jmxFlags string = fmt.Sprintf("-Dcom.sun.management.jmxremote   -Dcom.sun.management.jmxremote.port=%v   -Dcom.sun.management.jmxremote.local.only=true   -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false", jmxPort)
+var jmxFlags string = fmt.Sprintf("-Dcom.sun.management.jmxremote   -Dcom.sun.management.jmxremote.port=%v   -Dcom.sun.management.jmxremote.local.only=false   -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false", jmxPort)
 
 func main() {
 	log.Println("Welcome to the suite of ingredient finding services")
