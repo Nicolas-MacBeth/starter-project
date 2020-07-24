@@ -10,7 +10,7 @@ import (
 
 const jmxPort int = 8686
 
-var jmxFlags string = fmt.Sprintf("-Dcom.sun.management.jmxremote   -Dcom.sun.management.jmxremote.port=%v   -Dcom.sun.management.jmxremote.local.only=false   -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false", jmxPort)
+var jmxFlags = []string{"-Dcom.sun.management.jmxremote", fmt.Sprintf("-Dcom.sun.management.jmxremote.port=%v", jmxPort), "Dcom.sun.management.jmxremote.local.only=true", "-Dcom.sun.management.jmxremote.authenticate=false", "-Dcom.sun.management.jmxremote.ssl=false"}
 
 func main() {
 	log.Println("Welcome to the suite of ingredient finding services")
@@ -41,7 +41,7 @@ func startChildProcessJava(directory string, file string, waitGroup *sync.WaitGr
 	}
 
 	// Run the server
-	childProcess := exec.Command("java", jmxFlags, fmt.Sprintf("%v.%v", directory, file))
+	childProcess := exec.Command("java", jmxFlags[0], jmxFlags[1], jmxFlags[2], jmxFlags[3], jmxFlags[4], fmt.Sprintf("%v.%v", directory, file))
 	attachChildOutputToParent(childProcess)
 
 	errProcess := childProcess.Run() // This line will block execution and deferred Done() will not run until the server crashes, keeping parent main alive
