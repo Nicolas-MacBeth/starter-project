@@ -2,10 +2,18 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+
+	"go.opencensus.io/stats"
+	"go.opencensus.io/tag"
+
+	"contrib.go.opencensus.io/exporter/prometheus"
+	"go.opencensus.io/plugin/ochttp"
+	"go.opencensus.io/stats/view"
 )
 
 var logPrefix string = "[Finder]"
@@ -35,27 +43,70 @@ type finalAnswers struct {
 	ListOfResults []inventoryAndPrice
 }
 
+// metrics variables needed
+var (
+	requests      = stats.Int64("starter-project_requests", "The total requests per ingredient", "reqs")
+	ingredient, _ = tag.NewKey("ingredient")
+)
+
 const portString string = "8080"
 const supplierPort string = "8081"
 const vendorPort string = "8082"
+const prometheusPort string = "8083"
+const counterPort = "8084"
 
 func main() {
+	// Create the Prometheus exporter.
+	exporter, err := prometheus.NewExporter(prometheus.Options{
+		Namespace: "ocmetrics",
+	})
+	if err != nil {
+		log.Printf("%v Failed to create the Prometheus metrics exporter: %v", logPrefix, err)
+	}
+
+	// Run the Prometheus exporter as a scrape endpoint.
+	go func() {
+		mux := http.NewServeMux()
+		mux.Handle("/metrics", exporter)
+		log.Printf("%v Starting Prometheus scrape endpoint on port: %v", logPrefix, prometheusPort)
+		log.Println(http.ListenAndServe(":"+prometheusPort, mux))
+	}()
+	// foodfinder Server
 	router := http.NewServeMux()
 
-	// Handle routes with their respective functions
+	// Handler for routes with their respective functions, wrapped in Metrics handler
 	homepageHandler := http.HandlerFunc(homepage)
 	router.Handle("/", homepageHandler)
+
 	findfoodHandler := http.HandlerFunc(findFood)
 	router.Handle("/findfood", findfoodHandler)
 
 	fs := http.FileServer(http.Dir("./public"))
 	router.Handle("/public/", http.StripPrefix("/public/", fs))
 
+	// Wrap the router in a ochttp Handler for metrics
+	mux := &ochttp.Handler{
+		Handler: router,
+	}
+
+	v := &view.View{
+		Name:        "ingredient_specific_requests",
+		Measure:     requests,
+		Description: "Requests per ingredient",
+		Aggregation: view.Count(),
+		TagKeys:     []tag.Key{ingredient},
+	}
+	if err := view.Register(v); err != nil {
+		log.Fatalf("%v Failed to register the view: %v", logPrefix, err)
+	}
+
 	log.Printf("%v Starting FoodFinder server to listen for requests on port %v", logPrefix, portString)
-	log.Printf("%v %v", logPrefix, http.ListenAndServe(":"+portString, router))
+	log.Printf("%v %v", logPrefix, http.ListenAndServe(":"+portString, mux))
 }
 
 func findFood(response http.ResponseWriter, request *http.Request) {
+	go notifyJavaServer()
+
 	log.Printf("%v %v %v", logPrefix, request.Method, request.URL)
 
 	var ingredients queryParams
@@ -66,6 +117,14 @@ func findFood(response http.ResponseWriter, request *http.Request) {
 		log.Printf("%v %v", logPrefix, err)
 		http.Error(response, "Unable to decode JSON", http.StatusBadRequest)
 		return
+	}
+
+	// record metrics for every ingredient
+	for _, ingredient := range ingredients.IngredientsList {
+		err := recordIngredient(ingredient)
+		if err != nil {
+			log.Printf("%v %v", logPrefix, err)
+		}
 	}
 
 	// Get list of vendors
@@ -101,6 +160,14 @@ func findFood(response http.ResponseWriter, request *http.Request) {
 
 	response.Header().Set("Content-Type", "application/json")
 	response.Write(dataBody)
+}
+
+func notifyJavaServer() {
+	response, err := http.Get(fmt.Sprintf("http://localhost:%v/count", counterPort))
+	if err != nil {
+		fmt.Printf("Java notifying error, err: %v", err)
+	}
+	defer response.Body.Close()
 }
 
 func homepage(response http.ResponseWriter, request *http.Request) {
@@ -154,4 +221,14 @@ func queryVendorsPriceAndInventory(payload *vendorAndIngredientList) (*finalAnsw
 	}
 
 	return &finalResult, nil
+}
+
+func recordIngredient(ingredientString string) error {
+	ctx, err := tag.New(context.Background(), tag.Upsert(ingredient, ingredientString))
+	if err != nil {
+		return err
+	}
+	stats.Record(ctx, requests.M(1))
+
+	return nil
 }
