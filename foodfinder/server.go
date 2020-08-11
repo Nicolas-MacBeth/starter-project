@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
 
 	"contrib.go.opencensus.io/exporter/prometheus"
+	"github.com/DataDog/datadog-go/statsd"
 	"go.opencensus.io/plugin/ochttp"
 	"go.opencensus.io/stats/view"
 )
@@ -56,6 +58,29 @@ const prometheusPort string = "8083"
 const counterPort = "8084"
 
 func main() {
+	// DogStatsD metrics
+	statsd, err := statsd.New("127.0.0.1:9125")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for i := 0; i < 10; i++ {
+		statsd.Histogram("example_metric.histogram", float64(rand.Intn(20)), []string{"environment:dev"}, 1)
+	}
+
+	for i := 0; i < 10; i++ {
+		statsd.Distribution("example_metric.distribution", float64(rand.Intn(20)), []string{"environment:dev"}, 1)
+	}
+
+	for i := 0; i < 10; i++ {
+		statsd.Incr("example_metric.increment", []string{"environment:dev"}, 1)
+		statsd.Decr("example_metric.decrement", []string{"environment:dev"}, 1)
+	}
+
+	for i := 0; i < 10; i++ {
+		statsd.Gauge("example_metric.gauge", float64(i), []string{"environment:dev"}, 1)
+	}
+
 	// Create the Prometheus exporter.
 	exporter, err := prometheus.NewExporter(prometheus.Options{
 		Namespace: "ocmetrics",
